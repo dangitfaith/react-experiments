@@ -29,5 +29,9 @@
   },
   "engines": {
     "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "react": "^0.12.1",
+    "react-swiper": "^0.1.4"
   }
 }
