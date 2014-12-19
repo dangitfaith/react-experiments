@@ -9,6 +9,10 @@ var IMAGES = [
     '/testImages/image6.jpg'
 ];
 
+var ReactImages = IMAGES.map(function(image) {
+    return React.DOM.img({src: image, height: 350, width: 233});
+});
+
 var Carousel = React.createClass({
     getInitialState: function() {
         return {
@@ -49,10 +53,11 @@ var Carousel = React.createClass({
         var width = this.props.slideWidth;
         var height = this. props.slideHeight;
 
-        var children = this.props.items.map(function(item) {
-            return <CarouselItem data={item} height={height} width={width}/>;
+        /*var children = this.props.items.map(function(item) {
+            //return <CarouselItem data={item} height={height} width={width}/>;
+            return React.DOM.img({src: item, height: height, width: width});
         });
-
+*/
         var containerStyle = {
             width: width + 'px'
         };
@@ -71,7 +76,7 @@ var Carousel = React.createClass({
             <div className="carousel" style={containerStyle}>
                 <div className="carousel__window" style={slideWindowStyle}>
                     <div className="carousel__slides" style={slideListStyle}>
-                        {children}
+                        {this.props.items}
                     </div>
                 </div>
                 <CarouselControl nextFunc={this.next} prevFunc={this.prev}/>
@@ -145,4 +150,4 @@ var CarouselPager = React.createClass({
     }
 });
 
-React.render(<Carousel slideHeight="350" slideWidth="233" items={IMAGES}/>, document.body);
+React.render(<Carousel slideHeight="350" slideWidth="233" items={ReactImages}/>, document.body);
