@@ -1,5 +1,5 @@
 ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
-
+React.initializeTouchEvents(true);
 var IMAGES = [
     '/testImages/image1.jpg',
     '/testImages/image2.jpg',
@@ -9,12 +9,6 @@ var IMAGES = [
     '/testImages/image6.jpg'
 ];
 
-var vertical = false;
-/*
-var ReactImages = IMAGES.map(function(image) {
-    return React.DOM.img({src: image, height: 350, width: 233});
-});
-*/
 
 var Carousel = React.createClass({
     getInitialState: function() {
@@ -57,9 +51,8 @@ var Carousel = React.createClass({
         var height = this.props.slideHeight;
         var isVertical = this.props.isVertical;
 
-        var children = this.props.items.map(function(item) {
-            //return <CarouselItem data={item} height={height} width={width}/>;
-            return React.DOM.img({src: item, height: height, width: width});
+        var children = this.props.items.map(function(item, index) {
+            return <CarouselItem data={item} height={height} width={width}/>;
         });
 
         var containerStyle = {
@@ -79,7 +72,7 @@ var Carousel = React.createClass({
         };
 
         return (
-            <div className="carousel" style={containerStyle}>
+            <div id={this.props.id} className="carousel" style={containerStyle}>
                 <div className="carousel__window" style={slideWindowStyle}>
                     <div className="carousel__slides" style={slideListStyle}>
                         {children}
@@ -132,7 +125,7 @@ var CarouselPages = React.createClass({
     render: function() {
         var children = this.props.data.map(function(item, index) {
             var isSelected = this.props.selectedIndex === index;
-            return (<CarouselPager isSelected={isSelected} index={index} updateIndex={this.updateIndex}/>);
+            return (<CarouselPager key={index} isSelected={isSelected} index={index} updateIndex={this.updateIndex}/>);
         }.bind(this));
 
         return (<div className='carousel__pages'>
@@ -158,5 +151,5 @@ var CarouselPager = React.createClass({
     }
 });
 
-React.render(<Carousel slideHeight="350" slideWidth="233" isVertical items={IMAGES}/>, document.body);
-
+React.render(<Carousel slideHeight="350" slideWidth="233" items={IMAGES}/>, document.getElementById('normal'));
+React.render(<Carousel slideHeight="350" slideWidth="233" isVertical items={IMAGES}/>, document.getElementById('vertical'));

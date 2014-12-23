@@ -1,5 +1,5 @@
-//ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
-
+ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
+React.initializeTouchEvents(true);
 var IMAGES = [
     '/testImages/image1.jpg',
     '/testImages/image2.jpg',
@@ -10,102 +10,77 @@ var IMAGES = [
 ];
 
 
-var CarouselStore = {
-    _state: {
-        index: 0,
-        maxSlides: 0
-    },
-
-    getState: function() {
-        return this._state;
-    },
-
-    setActiveIndex: function(index) {
-        this._state.index = index;
-        this.onChange();
-    },
-
-    setMaxSlides: function(max) {
-        this._state.maxSlides = max;
-        this.onChange();
-    },
-
-    onChange: function() {
-        return;
-    }
-}
-
-
-var CarouselActions = {
-    setActiveIndex: function(index) {
-        var max = CarouselStore.getState().maxSlides;
-        if (index > -1 && index < max) {
-            CarouselStore.setActiveIndex(index);
-        }
-    },
-
-    nextSlide: function() {
-        var state = CarouselStore.getState();
-        var newIndex = state.index + 1;
-        var max = state.maxSlides;
-
-        if (newIndex < max) {
-            CarouselStore.setActiveIndex(newIndex)
-        }
-    },
-
-    prevSlide: function() {
-        var state = CarouselStore.getState();
-        var newIndex = state.index - 1;
-
-        if (newIndex > -1) {
-            CarouselStore.setActiveIndex(newIndex)
-        }
-    },
-
-    setMaxSlides: function(index) {
-        CarouselStore.setMaxSlides(index);
-    }
-};
-
 var Carousel = React.createClass({
     getInitialState: function() {
         return {
             index: 0,
-            maxSlides: 0
+            numSlides: 0
         }
     },
 
-    getStateFromStore: function() {
-        return CarouselStore.getState();
+    setActiveIndex: function(index) {
+        var max = this.state.numSlides;
+        if (index > -1 && index < max) {
+            this.setState({index: index});
+        }
+    },
+
+    next: function(e) {
+        e.preventDefault();
+        var nextIndex = this.state.index + 1;
+        if (nextIndex < this.state.numSlides) {
+            this.setActiveIndex(nextIndex);
+        }
+    },
+
+    prev: function(e) {
+        e.preventDefault();
+        var prevIndex = this.state.index - 1;
+        if (prevIndex > -1) {
+            this.setActiveIndex(prevIndex);
+        }
     },
 
     componentDidMount: function() {
         var numSlides = this.props.items.length;
-        CarouselActions.setMaxSlides(numSlides);
-        CarouselStore.onChange = this.onChange;
-    },
-
-
-    onChange: function() {
-        this.setState(this.getStateFromStore())
+        this.setState({numSlides: numSlides});
     },
 
     render: function() {
-        var children = this.props.items.map(function(item) {
-            return <CarouselItem data={item}/>;
+        var width = this.props.slideWidth;
+        var height = this.props.slideHeight;
+        var isVertical = this.props.isVertical;
+
+        var children = this.props.items.map(function(item, index) {
+            return <CarouselItem data={item} height={height} width={width}/>;
         });
 
+        var containerStyle = {
+            width: width + 'px'
+        };
+
+        var slideWindowStyle = {
+            height: height + 'px',
+            width: width + 'px'
+        };
+
+        var transformValue = isVertical ? -this.state.index * height + 'px' : -this.state.index * width + 'px';
+        var transformCSS = (isVertical ? 'translateY' : 'translateX') + '(' + transformValue + ')';
+        var slideListStyle = {
+            transform: transformCSS,
+            height: isVertical ? this.state.numSlides * height + 'px' : height,
+            width: isVertical ? width : this.state.numSlides * width + 'px'
+        };
+
         return (
-            <div className="carousel">
-                <div style={{height: '350px', width: '233px'}} className="carousel__window">
-                    <div className="carousel__slides" style={{left: -this.state.index * 233 + 'px', width: 233 * this.state.maxSlides + 'px'}}>
+            <div id={this.props.id} className="carousel" style={containerStyle}>
+                <div className="carousel__window" style={slideWindowStyle}>
+                    <div className="carousel__slides" style={slideListStyle}>
                         {children}
                     </div>
                 </div>
-                <CarouselControl/>
-                <CarouselPages numSlides={this.props.items.length} selected={this.state.index}/>
-
+                <CarouselControl nextFunc={this.next} prevFunc={this.prev}/>
+                <CarouselPages setIndex={this.setActiveIndex} selectedIndex={this.state.index} data={this.props.items}/>
             </div>
         );
     }
@@ -114,7 +89,7 @@ var Carousel = React.createClass({
 
 var CarouselItem = React.createClass({
     render: function() {
-        return <img height='350' width='233' src={this.props.data}/>;
+        return <img className="carousel__slide" height={this.props.height} width={this.props.width} src={this.props.data}/>;
     }
 });
 
@@ -122,50 +97,60 @@ var CarouselItem = React.createClass({
 var CarouselControl = React.createClass({
     render: function() {
         return (
-            <div className='controls'>
-                <a onClick={this.handlePrevious}>Previous </a>
-                <a onClick={this.handleNext}>Next </a>
+            <div className='carousel__controls'>
+                <a className='carousel__control carousel__control--prev' onClick={this.handlePrevious}>Previous</a>
+                <a className='carousel__control carousel__control--next' onClick={this.handleNext}>Next</a>
             </div>
         );
     },
 
     handlePrevious: function(e) {
-        e.preventDefault();
-        CarouselActions.prevSlide();
+        this.props.prevFunc(e);
     },
 
     handleNext: function(e) {
-        e.preventDefault();
-        CarouselActions.nextSlide();
+        this.props.nextFunc(e)
     }
 });
 
-var CarouselPages = React.createClass({
-    render: function() {
-        var num = this.props.numSlides;
-        var children = [];
-        for (var i = 0; i < num; i++) {
-            var isSelected = (this.props.selected === i);
-            console.log(isSelected);
-            children.push(<CarouselPager key={i} index={i} selected={isSelected}/>)
-        }
 
-        console.log('----');
-        return (<div>{children}</div>);
+var CarouselPages = React.createClass({
+    componentDidMount: function() {
+
+    },
+
+    updateIndex: function(index) {
+        this.props.setIndex(index);
+    },
+
+    render: function() {
+        var children = this.props.data.map(function(item, index) {
+            var isSelected = this.props.selectedIndex === index;
+            return (<CarouselPager key={index} isSelected={isSelected} index={index} updateIndex={this.updateIndex}/>);
+        }.bind(this));
+
+        return (<div className='carousel__pages'>
+            {children}
+        </div>);
     }
 });
 
 
 var CarouselPager = React.createClass({
     handleClick: function() {
-        CarouselActions.setActiveIndex(this.props.index);
+        this.props.updateIndex(this.props.index);
     },
 
     render: function() {
-        var selected = this.props.selected;
-        return (<a className="carousel__page" style={{fontWeight: 600 * selected}} onClick={this.handleClick}>{this.props.index}</a>);
+        var classString = 'carousel__page';
+
+        if (this.props.isSelected) {
+            classString += ' carousel__page--selected';
+        }
+
+        return (<a className={classString} onClick={this.handleClick}>{this.props.index + 1}</a>);
     }
-})
+});
 
-
-React.render(<Carousel items={IMAGES} />, document.body);
+React.render(<Carousel slideHeight="350" slideWidth="233" items={IMAGES}/>, document.getElementById('normal'));
+React.render(<Carousel slideHeight="350" slideWidth="233" isVertical items={IMAGES}/>, document.getElementById('vertical'));
