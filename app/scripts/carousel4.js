@@ -11,14 +11,21 @@ var IMAGES = [
     '/testImages/image6.jpg'
 ];
 
-
 var Carousel = React.createClass({
+
+    propTypes: {
+        items: React.PropTypes.array.isRequired,
+        slideWidth: React.PropTypes.number.isRequired,
+        slideHeight: React.PropTypes.number.isRequired,
+        isVertical: React.PropTypes.bool
+    },
+
     getInitialState: function() {
         return {
             index: 0,
             numSlides: 0,
             delta: 0,
-            isTouching: false
+            isSwiping: false
         }
     },
 
@@ -56,49 +63,78 @@ var Carousel = React.createClass({
 
         var isVertical = this.props.isVertical;
 
-        var transformValue = (isVertical ? -this.state.index * height : -this.state.index * width);
-
-        if (this.state.isTouching) {
-            transformValue += this.state.delta;
-        }
+        var transformValue = (isVertical ? -this.state.index * height : -this.state.index * width) + this.state.delta;
 
         var transformCSS = (isVertical ? 'translateY' : 'translateX') + '(' + transformValue + 'px)';
 
         return {
+            WebkitTransform: transformCSS,
+            msTransform: transformCSS,
             transform: transformCSS,
             height: isVertical ? this.state.numSlides * height + 'px' : height,
             width: isVertical ? width : this.state.numSlides * width + 'px'
         };
-
     },
 
     moveCarouselLeft: function(e, delta) {
+        e.preventDefault();
+        if (this.props.isVertical) {
+            return;
+        }
 
-        this.setState({isTouching: true, delta: -delta});
+        this.setState({isSwiping: true, delta: -delta});
     },
 
     moveCarouselRight: function(e, delta) {
-
-        this.setState({isTouching: true, delta: delta});
+        e.preventDefault();
+        if (this.props.isVertical) {
+            return;
+        }
+        this.setState({isSwiping: true, delta: delta});
     },
 
-    onSwiped: function(e, x, y, isFlicked) {
-        this.setState({isTouching: false, delta: 0});
+    moveCarouselUp: function(e, delta) {
+        e.preventDefault();
+        if (!this.props.isVertical) {
+            return;
+        }
+        this.setState({isSwiping: true, delta: -delta});
+    },
 
-        //check if we need to update the index
-        if (isFlicked) {
-            if (x < 0) {
+    moveCarouselDown: function(e, delta) {
+        e.preventDefault();
+        if (!this.props.isVertical) {
+            return;
+        }
+        this.setState({isSwiping: true, delta: delta});
+    },
+
+    onSwiped: function(e, xDelta, yDelta, isFlicked) {
+        this.setState({isSwiping: false, delta: 0});
+
+        if (!isFlicked) {
+            return;
+        }
+
+        var THRESHOLD = 25;
+        if (this.props.isVertical) {
+            if (yDelta < -THRESHOLD) {
                 this.prev(e);
-                return;
+            } else if (yDelta > THRESHOLD) {
+                this.next(e)
             }
-            this.next(e);
+        } else {
+            if (xDelta < -THRESHOLD) {
+                this.prev(e);
+            } else if (xDelta > THRESHOLD) {
+                this.next(e);
+            }
         }
     },
 
     render: function() {
         var width = this.props.slideWidth;
         var height = this.props.slideHeight;
-
 
         var children = this.props.items.map(function(item, index) {
             return <CarouselItem data={item} height={height} width={width}/>;
@@ -115,17 +151,15 @@ var Carousel = React.createClass({
 
         var slideListStyle = this.calculateSlidePosition();
 
-
-
         var swipeContainer = MySwipe({
-            onSwiped: this.onSwiped,  //setActiveIndex
+            onSwiped: this.onSwiped,
             onSwipingLeft: this.moveCarouselLeft,
             onSwipingRight: this.moveCarouselRight,
-
+            onSwipingUp: this.moveCarouselDown,
+            onSwipingDown: this.moveCarouselUp,
             className: 'carousel__slides',
             style: slideListStyle
         }, children);
-
 
         return (
             <div  id={this.props.id} className="carousel" style={containerStyle}>
@@ -141,6 +175,11 @@ var Carousel = React.createClass({
 
 
 var CarouselItem = React.createClass({
+    propTypes: {
+        height: React.PropTypes.number.isRequired,
+        width: React.PropTypes.number.isRequired,
+        data: React.PropTypes.string.isRequired
+    },
     render: function() {
         return <img className="carousel__slide" height={this.props.height} width={this.props.width} src={this.props.data}/>;
     }
@@ -148,6 +187,11 @@ var CarouselItem = React.createClass({
 
 
 var CarouselControl = React.createClass({
+    propTypes: {
+        nextFunc: React.PropTypes.func.isRequired,
+        prevFunc: React.PropTypes.func.isRequired
+    },
+
     render: function() {
         return (
             <div className='carousel__controls'>
@@ -168,8 +212,8 @@ var CarouselControl = React.createClass({
 
 
 var CarouselPages = React.createClass({
-    componentDidMount: function() {
-
+    propTypes: {
+        data: React.PropTypes.array.isRequired
     },
 
     updateIndex: function(index) {
@@ -190,6 +234,10 @@ var CarouselPages = React.createClass({
 
 
 var CarouselPager = React.createClass({
+    propTypes: {
+        index: React.PropTypes.number.isRequired
+    },
+
     handleClick: function() {
         this.props.updateIndex(this.props.index);
     },
@@ -205,5 +253,5 @@ var CarouselPager = React.createClass({
     }
 });
 
-React.render(<Carousel slideHeight="350" slideWidth="233" items={IMAGES}/>, document.getElementById('normal'));
-React.render(<Carousel slideHeight="350" slideWidth="233" isVertical items={IMAGES}/>, document.getElementById('vertical'));
+React.render(<Carousel slideHeight={350} slideWidth={233} isVertical={false} items={IMAGES}/>, document.getElementById('normal'));
+React.render(<Carousel slideHeight={350} slideWidth={233} isVertical={true} items={IMAGES}/>, document.getElementById('vertical'));
