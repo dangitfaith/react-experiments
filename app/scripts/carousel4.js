@@ -1,5 +1,7 @@
 ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
 React.initializeTouchEvents(true);
+var MySwipe = React.createFactory(Swipeable);
+
 var IMAGES = [
     '/testImages/image1.jpg',
     '/testImages/image2.jpg',
@@ -14,7 +16,9 @@ var Carousel = React.createClass({
     getInitialState: function() {
         return {
             index: 0,
-            numSlides: 0
+            numSlides: 0,
+            delta: 0,
+            isTouching: false
         }
     },
 
@@ -46,10 +50,55 @@ var Carousel = React.createClass({
         this.setState({numSlides: numSlides});
     },
 
+    calculateSlidePosition: function() {
+        var width = this.props.slideWidth;
+        var height = this.props.slideHeight;
+
+        var isVertical = this.props.isVertical;
+
+        var transformValue = (isVertical ? -this.state.index * height : -this.state.index * width);
+
+        if (this.state.isTouching) {
+            transformValue += this.state.delta;
+        }
+
+        var transformCSS = (isVertical ? 'translateY' : 'translateX') + '(' + transformValue + 'px)';
+
+        return {
+            transform: transformCSS,
+            height: isVertical ? this.state.numSlides * height + 'px' : height,
+            width: isVertical ? width : this.state.numSlides * width + 'px'
+        };
+
+    },
+
+    moveCarouselLeft: function(e, delta) {
+
+        this.setState({isTouching: true, delta: -delta});
+    },
+
+    moveCarouselRight: function(e, delta) {
+
+        this.setState({isTouching: true, delta: delta});
+    },
+
+    onSwiped: function(e, x, y, isFlicked) {
+        this.setState({isTouching: false, delta: 0});
+
+        //check if we need to update the index
+        if (isFlicked) {
+            if (x < 0) {
+                this.prev(e);
+                return;
+            }
+            this.next(e);
+        }
+    },
+
     render: function() {
         var width = this.props.slideWidth;
         var height = this.props.slideHeight;
-        var isVertical = this.props.isVertical;
+
 
         var children = this.props.items.map(function(item, index) {
             return <CarouselItem data={item} height={height} width={width}/>;
@@ -64,20 +113,24 @@ var Carousel = React.createClass({
             width: width + 'px'
         };
 
-        var transformValue = isVertical ? -this.state.index * height + 'px' : -this.state.index * width + 'px';
-        var transformCSS = (isVertical ? 'translateY' : 'translateX') + '(' + transformValue + ')';
-        var slideListStyle = {
-            transform: transformCSS,
-            height: isVertical ? this.state.numSlides * height + 'px' : height,
-            width: isVertical ? width : this.state.numSlides * width + 'px'
-        };
+        var slideListStyle = this.calculateSlidePosition();
+
+
+
+        var swipeContainer = MySwipe({
+            onSwiped: this.onSwiped,  //setActiveIndex
+            onSwipingLeft: this.moveCarouselLeft,
+            onSwipingRight: this.moveCarouselRight,
+
+            className: 'carousel__slides',
+            style: slideListStyle
+        }, children);
+
 
         return (
-            <div id={this.props.id} className="carousel" style={containerStyle}>
+            <div  id={this.props.id} className="carousel" style={containerStyle}>
                 <div className="carousel__window" style={slideWindowStyle}>
-                    <div className="carousel__slides" style={slideListStyle}>
-                        {children}
-                    </div>
+                    {swipeContainer}
                 </div>
                 <CarouselControl nextFunc={this.next} prevFunc={this.prev}/>
                 <CarouselPages setIndex={this.setActiveIndex} selectedIndex={this.state.index} data={this.props.items}/>
